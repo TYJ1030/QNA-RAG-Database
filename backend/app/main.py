@@ -5,6 +5,8 @@ Includes API routers, CORS, and Celery integration.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from app.api import documents
 from celery_worker import test_celery
 from fastapi.responses import JSONResponse
@@ -29,8 +31,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
 # Include document API router
 app.include_router(documents.router)
+
+# Serve frontend at root
+@app.get("/")
+async def serve_frontend():
+    return FileResponse("app/static/index.html")
 
 
 # Startup/shutdown events for resource management
