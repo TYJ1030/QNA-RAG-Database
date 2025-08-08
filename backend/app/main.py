@@ -37,6 +37,10 @@ app.include_router(documents.router)
 # Remove @app.on_event("startup") and @app.on_event("shutdown")
 
 
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "service": "QNA-RAG-System"}
+
 @app.get("/test-celery")
 def run_test_celery():
     task = test_celery.delay()
