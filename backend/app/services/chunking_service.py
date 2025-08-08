@@ -1,5 +1,5 @@
 from typing import List, Dict
-from backend.app.models.chunk_models import Chunk, ChunkingConfig
+from app.models.chunk_models import Chunk, ChunkingConfig
 import nltk
 from nltk.tokenize import sent_tokenize
 from sentence_transformers import SentenceTransformer

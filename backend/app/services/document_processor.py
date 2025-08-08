@@ -13,10 +13,7 @@ import aiofiles
 import logging
 import redis
 import inspect
-try:
-    from backend.app.models.chunk_models import ChunkingConfig
-except ImportError:
-    from app.models.chunk_models import ChunkingConfig
+from app.models.chunk_models import ChunkingConfig
 import mimetypes
 import docx
 from pypdf import PdfReader
@@ -226,7 +223,7 @@ class DocumentProcessor:
             logger.info(f"Extracted text length: {len(extracted_text)}")
 
             # Chunk the extracted text
-            from backend.app.services.chunking_service import ChunkingService
+            from app.services.chunking_service import ChunkingService
 
             chunker = ChunkingService(chunking_config)
             chunks = await chunker.hybrid_chunk(extracted_text, metadata={})
@@ -499,8 +496,14 @@ class DocumentProcessor:
             meta["size"] = int(meta["size"])
         if "created_at" in meta:
             from datetime import datetime
-
             meta["created_at"] = datetime.fromisoformat(meta["created_at"])
+        # Convert empty strings to None for optional fields
+        if "word_count" in meta and meta["word_count"] == "":
+            meta["word_count"] = None
+        if "headings" in meta and meta["headings"] == "":
+            meta["headings"] = None
+        if "tables" in meta and meta["tables"] == "":
+            meta["tables"] = None
         return meta
 
     def delete_document(self, doc_id: str):

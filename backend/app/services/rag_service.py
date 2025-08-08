@@ -4,10 +4,7 @@ import aiohttp
 import requests
 from typing import List, Optional
 from fastapi import WebSocket
-try:
-    from backend.app.models.chunk_models import Chunk
-except ImportError:
-    from app.models.chunk_models import Chunk
+from app.models.chunk_models import Chunk
 
 class RAGService:
     def __init__(self):
