@@ -12,16 +12,24 @@ from sentence_transformers import SentenceTransformer
 
 class VectorService:
     def __init__(self):
-        self.chunk_model = SentenceTransformer("all-MiniLM-L6-v2")
-        # Use lighter model for faster startup on Render
-        try:
-            self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-            logging.info("Loaded lightweight embedding model for production")
-        except Exception as e:
-            logging.error(f"Failed to load embedding model: {e}")
-            self.embedding_model = None
-        self.embedding_model.max_seq_length = 1024
+        # Lazy loading for Render deployment
+        self.chunk_model = None
+        self.embedding_model = None
         self._embedding_model_warmed = False
+        logging.info("VectorService initialized with lazy loading")
+        
+    def _get_chunk_model(self):
+        if self.chunk_model is None:
+            logging.info("Loading chunk model...")
+            self.chunk_model = SentenceTransformer("all-MiniLM-L6-v2")
+        return self.chunk_model
+        
+    def _get_embedding_model(self):
+        if self.embedding_model is None:
+            logging.info("Loading embedding model...")
+            self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+            self.embedding_model.max_seq_length = 1024
+        return self.embedding_model
 
     async def _get_redis(self):
         if not hasattr(self, "_redis"):
@@ -94,8 +102,9 @@ class VectorService:
             for attempt in range(max_retries):
                 try:
                     loop = asyncio.get_event_loop()
+                    embedding_model = self._get_embedding_model()
                     embeddings = await loop.run_in_executor(
-                        None, self.embedding_model.encode, list(valid_texts)
+                        None, embedding_model.encode, list(valid_texts)
                     )
                     embeddings = [emb.tolist() for emb in embeddings]
                     for idx, emb in zip(valid_indices, embeddings):
@@ -255,7 +264,7 @@ class VectorService:
                 sections.append(section_text)
         if not sections:
             sections = [text.strip()]
-        tokenizer = self.chunk_model.tokenizer
+        tokenizer = self._get_chunk_model().tokenizer
         chunks = []
         for section in sections:
             sentences = re.split(r"(?<=[.!?])\s+", section)
