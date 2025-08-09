@@ -58,3 +58,6 @@ dump.rdb
 
 # Test files
 test-scroll.html
+
+# Render
+render.yaml
