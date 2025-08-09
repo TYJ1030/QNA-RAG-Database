@@ -106,16 +106,28 @@ async function uploadSingleFile(file) {
         const formData = new FormData();
         formData.append('file', file);
         
+        // Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+        
         const response = await fetch(`${API_BASE_URL}/documents/upload`, {
             method: 'POST',
-            body: formData
+            body: formData,
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         if (!response.ok) {
             throw new Error(`Upload failed: ${response.statusText}`);
         }
         
         const result = await response.json();
+        console.log('Upload response:', result);  // Debug log
+        
+        if (!result.document_id) {
+            throw new Error('Invalid response: missing document_id');
+        }
         
         // Simulate progress
         progressFill.style.width = '50%';
