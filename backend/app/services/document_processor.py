@@ -86,11 +86,16 @@ class DocumentProcessor:
         Uses per-document-type chunking configuration for flexible processing.
         """
         # Initialize storage paths
-        self.upload_dir = Path("temp_uploads")
+        self.upload_dir = Path("/tmp/temp_uploads")
         self.upload_dir.mkdir(exist_ok=True)
 
         # Initialize magic number detector
-        self.magic_detector = magic.Magic(mime=True)
+        try:
+            self.magic_detector = magic.Magic(mime=True)
+        except Exception:
+            # Fallback for systems without libmagic
+            self.magic_detector = None
+            logging.warning("libmagic not available, using fallback file detection")
 
         # Initialize OCR service
         from .ocr_service import OCRService
@@ -307,7 +312,14 @@ class DocumentProcessor:
             )
 
         # Detect MIME type using magic numbers
-        detected_mime = self.magic_detector.from_buffer(content)
+        if self.magic_detector:
+            detected_mime = self.magic_detector.from_buffer(content)
+        else:
+            # Fallback: use mimetypes module
+            import mimetypes
+            detected_mime, _ = mimetypes.guess_type(filename)
+            if not detected_mime:
+                detected_mime = expected_mime  # Use extension-based detection
 
         # Get expected MIME type from extension
         expected_mime = EXTENSION_MAPPING[file_ext]

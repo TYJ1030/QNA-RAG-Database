@@ -142,7 +142,7 @@ class VectorService:
         import chromadb
         from chromadb.config import Settings
         return chromadb.PersistentClient(
-            path="./chroma_db",
+            path="/tmp/chroma_db",
             settings=Settings(anonymized_telemetry=False, is_persistent=True),
         )
 
