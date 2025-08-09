@@ -54,6 +54,10 @@ app.include_router(documents.router)
 async def serve_frontend():
     return FileResponse("app/static/index.html")
 
+@app.head("/")
+async def head_root():
+    return {"status": "ok"}
+
 
 # Startup/shutdown events for resource management
 # Remove @app.on_event("startup") and @app.on_event("shutdown")
