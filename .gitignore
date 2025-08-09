@@ -64,3 +64,7 @@ test-scroll.html
 
 # Render
 render.yaml
+
+# OCR dependencies (not needed for basic functionality)
+cv2
+opencv-python
