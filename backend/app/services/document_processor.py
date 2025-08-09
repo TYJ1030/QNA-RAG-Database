@@ -232,28 +232,40 @@ class DocumentProcessor:
             extracted_text = await self._extract_text_from_file(filepath, detected_type)
             logger.info(f"Extracted text length: {len(extracted_text)}")
 
-            # Chunk the extracted text
-            from app.services.chunking_service import ChunkingService
-
-            chunker = ChunkingService(chunking_config)
-            chunks = await chunker.hybrid_chunk(extracted_text, metadata={})
-            logger.info(
-                f"Chunked into {len(chunks)} chunks. Sample: {chunks[0].text if chunks else 'No chunks'}"
-            )
+            # Simple text chunking without ML models for Render
+            import re
+            sentences = re.split(r'(?<=[.!?])\s+', extracted_text)
+            chunks = []
+            current_chunk = []
+            current_length = 0
+            
+            for sentence in sentences:
+                if current_length + len(sentence) > 500:  # Simple word count
+                    if current_chunk:
+                        chunk_text = ' '.join(current_chunk)
+                        # Create simple chunk object
+                        class SimpleChunk:
+                            def __init__(self, text):
+                                self.text = text
+                            def model_dump(self):
+                                return {'text': self.text}
+                        chunks.append(SimpleChunk(chunk_text))
+                        current_chunk = []
+                        current_length = 0
+                current_chunk.append(sentence)
+                current_length += len(sentence)
+            
+            if current_chunk:
+                chunk_text = ' '.join(current_chunk)
+                chunks.append(SimpleChunk(chunk_text))
+            
+            logger.info(f"Simple chunked into {len(chunks)} chunks")
 
             # Store chunks in Redis
             self._store_chunks(doc_id, chunks)
             
-            # Store chunks in ChromaDB for vector search
-            from app.services.vector_service import VectorService
-            vector_service = VectorService()
-            chunk_texts = [chunk.text for chunk in chunks]
-            await vector_service.store_chunks(
-                chunks=chunk_texts,
-                collection_name="documents",
-                doc_id=doc_id
-            )
-            logger.info(f"Stored {len(chunks)} chunks in ChromaDB for doc {doc_id}")
+            # Skip vector storage for now to avoid ML model loading
+            logger.info(f"Skipping vector storage for faster deployment - {len(chunks)} chunks processed")
 
             # Track progress: extraction done
             self.track_progress(doc_id, status="processing", progress=75)
