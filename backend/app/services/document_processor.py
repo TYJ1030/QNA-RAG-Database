@@ -87,7 +87,12 @@ class DocumentProcessor:
         """
         # Initialize storage paths
         self.upload_dir = Path("/tmp/temp_uploads")
-        self.upload_dir.mkdir(exist_ok=True)
+        try:
+            self.upload_dir.mkdir(exist_ok=True)
+            logging.info(f"Upload directory created: {self.upload_dir}")
+        except Exception as e:
+            logging.error(f"Failed to create upload directory: {e}")
+            raise
 
         # Initialize magic number detector
         try:
@@ -97,10 +102,14 @@ class DocumentProcessor:
             self.magic_detector = None
             logging.warning("libmagic not available, using fallback file detection")
 
-        # Initialize OCR service
-        from .ocr_service import OCRService
-
-        self.ocr_service = OCRService()
+        # Initialize OCR service (disabled for Render deployment)
+        try:
+            from .ocr_service import OCRService
+            self.ocr_service = OCRService()
+            logging.info("OCR service initialized")
+        except ImportError as e:
+            logging.warning(f"OCR service unavailable: {e}")
+            self.ocr_service = None
 
         # Initialize Redis connection
         self.redis = redis.Redis.from_url(
@@ -146,6 +155,7 @@ class DocumentProcessor:
             return ""
 
     async def handle_upload(self, file: UploadFile) -> str:
+        logging.info(f"Starting upload for file: {file.filename}")
         """
         Handle async file upload, validation, text extraction, chunking, and chunk storage.
         Pipeline:
@@ -269,11 +279,15 @@ class DocumentProcessor:
             return doc_id
 
         except Exception as e:
-            logger.error(f"Error processing upload: {str(e)}")
+            error_msg = f"Upload error: {str(e)}"
+            logging.error(error_msg)
+            logging.error(f"Error type: {type(e).__name__}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
             # Track progress: error
             if "doc_id" in locals():
                 self.track_progress(doc_id, status="error", error_message=str(e))
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=500, detail=error_msg)
 
     async def _validate_file_size(self, file: UploadFile) -> None:
         """
