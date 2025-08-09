@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from app.api import documents
+from app.api import documents, health
 from celery_worker import test_celery
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager

@@ -102,14 +102,9 @@ class DocumentProcessor:
             self.magic_detector = None
             logging.warning("libmagic not available, using fallback file detection")
 
-        # Initialize OCR service (disabled for Render deployment)
-        try:
-            from .ocr_service import OCRService
-            self.ocr_service = OCRService()
-            logging.info("OCR service initialized")
-        except ImportError as e:
-            logging.warning(f"OCR service unavailable: {e}")
-            self.ocr_service = None
+        # OCR service disabled for Render deployment
+        self.ocr_service = None
+        logging.info("OCR service disabled for cloud deployment")
 
         # Initialize Redis connection
         self.redis = redis.Redis.from_url(
