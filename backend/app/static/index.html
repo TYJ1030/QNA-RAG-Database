@@ -56,36 +56,34 @@
 
             <!-- Right Panel - Chat Interface -->
             <div class="right-panel">
-                <div class="chat-container">
-                    <div class="chat-header">
-                        <h2>💬 Ask Questions</h2>
-                        <button class="clear-chat" onclick="clearChat()">Clear Chat</button>
-                    </div>
+                <div class="chat-header">
+                    <h2>💬 Ask Questions</h2>
+                    <button class="clear-chat" onclick="clearChat()">Clear Chat</button>
+                </div>
 
-                    <!-- Chat Messages -->
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="welcome-message">
-                            <div class="ai-bubble">
-                                <div class="bubble-content">
-                                    <p>👋 Welcome! Upload some documents and ask me questions about them.</p>
-                                </div>
+                <!-- Chat Messages -->
+                <div class="chat-messages" id="chatMessages">
+                    <div class="welcome-message">
+                        <div class="ai-bubble">
+                            <div class="bubble-content">
+                                <p>👋 Welcome! Upload some documents and ask me questions about them.</p>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Chat Input -->
-                    <div class="chat-input-container">
-                        <div class="chat-input">
-                            <textarea 
-                                id="messageInput" 
-                                placeholder="Ask a question about your documents..."
-                                rows="1"
-                                onkeypress="handleKeyPress(event)"
-                            ></textarea>
-                            <button class="send-btn" onclick="sendMessage()">
-                                <span>➤</span>
-                            </button>
-                        </div>
+                <!-- Chat Input -->
+                <div class="chat-input-container">
+                    <div class="chat-input">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="Ask a question about your documents..."
+                            rows="1"
+                            onkeypress="handleKeyPress(event)"
+                        ></textarea>
+                        <button class="send-btn" onclick="sendMessage()">
+                            <span>➤</span>
+                        </button>
                     </div>
                 </div>
             </div>

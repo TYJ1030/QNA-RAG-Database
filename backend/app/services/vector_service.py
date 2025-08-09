@@ -13,9 +13,13 @@ from sentence_transformers import SentenceTransformer
 class VectorService:
     def __init__(self):
         self.chunk_model = SentenceTransformer("all-MiniLM-L6-v2")
-        self.embedding_model = SentenceTransformer(
-            "jinaai/jina-embeddings-v2-small-en", trust_remote_code=True
-        )
+        try:
+            self.embedding_model = SentenceTransformer(
+                "jinaai/jina-embeddings-v2-small-en", trust_remote_code=True
+            )
+        except Exception as e:
+            logging.warning(f"Failed to load Jina embeddings, using fallback: {e}")
+            self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
         self.embedding_model.max_seq_length = 1024
         self._embedding_model_warmed = False
 
@@ -45,8 +49,11 @@ class VectorService:
     async def _warm_embedding_model(self):
         if not self._embedding_model_warmed:
             try:
-                await self.generate_embeddings(["warmup"])
+                # Simple warmup without recursion
+                loop = asyncio.get_event_loop()
+                _ = await loop.run_in_executor(None, self.embedding_model.encode, ["warmup"])
                 self._embedding_model_warmed = True
+                logging.info("Embedding model warmed up successfully")
             except Exception as e:
                 logging.warning(f"Embedding model warmup failed: {e}")
 

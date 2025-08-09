@@ -29,7 +29,7 @@ class RAGService:
             "Content-Type": "application/json",
         }
         payload = {
-            "model": "deepseek-chat-v3.0",
+            "model": "deepseek/deepseek-chat",
             "messages": [
                 {
                     "role": "system",
@@ -203,7 +203,7 @@ class RAGService:
         rag_prompt_template: str,
         stream: bool = False,
         websocket: Optional[WebSocket] = None,
-        model: str = "deepseek-chat",
+        model: str = "deepseek/deepseek-chat",
         api_url: str = "https://openrouter.ai/api/v1/chat/completions"
     ) -> str:
         """

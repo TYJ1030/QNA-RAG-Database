@@ -325,33 +325,53 @@ function removeTypingIndicator(typingId) {
 }
 
 async function simulateAIResponse(question, typingId) {
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    removeTypingIndicator(typingId);
-    
-    // Simulate AI response with source citation and confidence
-    const response = `Based on your uploaded documents, here's what I found regarding "${question}":
-
-This is a simulated response. The actual RAG query endpoint needs to be implemented to provide real answers from your documents.`;
-    
-    const chatMessages = document.getElementById('chatMessages');
-    const messageDiv = document.createElement('div');
-    
-    messageDiv.innerHTML = `
-        <div class="ai-bubble">
-            <div class="bubble-content">
-                <p>${escapeHtml(response)}</p>
+    try {
+        // Call real RAG endpoint
+        const response = await fetch(`${API_BASE_URL}/query`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query: question })
+        });
+        
+        const result = await response.json();
+        
+        removeTypingIndicator(typingId);
+        
+        const chatMessages = document.getElementById('chatMessages');
+        const messageDiv = document.createElement('div');
+        
+        // Build sources display
+        let sourcesHtml = '';
+        if (result.sources && result.sources.length > 0) {
+            const topSource = result.sources[0];
+            sourcesHtml = `
                 <div class="source-info">
-                    📄 Source: document.pdf, paragraph 3, line 15-18
-                    <span class="confidence-score">85%</span>
+                    📄 Source: Document ${topSource.document.substring(0, 8)}...
+                    <br>📝 Text: "${topSource.text_preview || 'No preview available'}"
+                    <span class="confidence-score">${topSource.score}%</span>
+                </div>
+            `;
+        }
+        
+        messageDiv.innerHTML = `
+            <div class="ai-bubble">
+                <div class="bubble-content">
+                    <p>${escapeHtml(result.answer)}</p>
+                    ${sourcesHtml}
                 </div>
             </div>
-        </div>
-    `;
-    
-    chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+        `;
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+    } catch (error) {
+        console.error('RAG query error:', error);
+        removeTypingIndicator(typingId);
+        addMessageToChat('Sorry, I encountered an error processing your question.', 'ai');
+    }
 }
 
 function clearChat() {

@@ -233,6 +233,17 @@ class DocumentProcessor:
 
             # Store chunks in Redis
             self._store_chunks(doc_id, chunks)
+            
+            # Store chunks in ChromaDB for vector search
+            from app.services.vector_service import VectorService
+            vector_service = VectorService()
+            chunk_texts = [chunk.text for chunk in chunks]
+            await vector_service.store_chunks(
+                chunks=chunk_texts,
+                collection_name="documents",
+                doc_id=doc_id
+            )
+            logger.info(f"Stored {len(chunks)} chunks in ChromaDB for doc {doc_id}")
 
             # Track progress: extraction done
             self.track_progress(doc_id, status="processing", progress=75)
@@ -476,6 +487,13 @@ class DocumentProcessor:
                     from datetime import datetime
 
                     meta["created_at"] = datetime.fromisoformat(meta["created_at"])
+                # Convert empty strings to None for optional fields
+                if "word_count" in meta and meta["word_count"] == "":
+                    meta["word_count"] = None
+                if "headings" in meta and meta["headings"] == "":
+                    meta["headings"] = None
+                if "tables" in meta and meta["tables"] == "":
+                    meta["tables"] = None
                 docs.append(meta)
         return docs
 
