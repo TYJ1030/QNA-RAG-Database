@@ -13,13 +13,13 @@ from sentence_transformers import SentenceTransformer
 class VectorService:
     def __init__(self):
         self.chunk_model = SentenceTransformer("all-MiniLM-L6-v2")
+        # Use lighter model for faster startup on Render
         try:
-            self.embedding_model = SentenceTransformer(
-                "jinaai/jina-embeddings-v2-small-en", trust_remote_code=True
-            )
-        except Exception as e:
-            logging.warning(f"Failed to load Jina embeddings, using fallback: {e}")
             self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+            logging.info("Loaded lightweight embedding model for production")
+        except Exception as e:
+            logging.error(f"Failed to load embedding model: {e}")
+            self.embedding_model = None
         self.embedding_model.max_seq_length = 1024
         self._embedding_model_warmed = False
 
@@ -47,15 +47,9 @@ class VectorService:
             pass  # Redis unavailable, skip caching
 
     async def _warm_embedding_model(self):
-        if not self._embedding_model_warmed:
-            try:
-                # Simple warmup without recursion
-                loop = asyncio.get_event_loop()
-                _ = await loop.run_in_executor(None, self.embedding_model.encode, ["warmup"])
-                self._embedding_model_warmed = True
-                logging.info("Embedding model warmed up successfully")
-            except Exception as e:
-                logging.warning(f"Embedding model warmup failed: {e}")
+        # Skip warmup for faster startup on Render
+        self._embedding_model_warmed = True
+        logging.info("Skipping embedding warmup for faster startup")
 
     def _calculate_optimal_batch_size(self, chunk_count: int) -> int:
         """Calculate optimal batch size based on chunk count"""
