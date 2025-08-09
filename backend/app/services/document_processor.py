@@ -264,8 +264,16 @@ class DocumentProcessor:
             # Store chunks in Redis
             self._store_chunks(doc_id, chunks)
             
-            # Skip vector storage for now to avoid ML model loading
-            logger.info(f"Skipping vector storage for faster deployment - {len(chunks)} chunks processed")
+            # Store chunks in ChromaDB for vector search
+            from app.services.vector_service import VectorService
+            vector_service = VectorService()
+            chunk_texts = [chunk.text for chunk in chunks]
+            await vector_service.store_chunks(
+                chunks=chunk_texts,
+                collection_name="documents",
+                doc_id=doc_id
+            )
+            logger.info(f"Stored {len(chunks)} chunks in ChromaDB for doc {doc_id}")
 
             # Track progress: extraction done
             self.track_progress(doc_id, status="processing", progress=75)
