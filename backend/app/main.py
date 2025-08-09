@@ -77,6 +77,17 @@ async def query_documents(request: dict):
         raise HTTPException(status_code=400, detail="Query is required")
     
     try:
+        # Check API keys first
+        import os
+        openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        if not openrouter_key:
+            return {
+                "answer": "OpenRouter API key not configured. Please add OPENROUTER_API_KEY to environment variables.",
+                "sources": [],
+                "confidence": 0
+            }
+        logger.info(f"OpenRouter API key found: {openrouter_key[:10]}...")
+        
         # Use global instances to avoid re-initialization
         if not hasattr(app.state, 'rag_service'):
             app.state.rag_service = RAGService()
@@ -203,8 +214,15 @@ Answer:"""
         }
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         logger.error(f"Query processing error: {e}")
-        raise HTTPException(status_code=500, detail="Error processing query")
+        logger.error(f"Full traceback: {error_details}")
+        return {
+            "answer": f"Sorry, I encountered an error processing your question: {str(e)}",
+            "sources": [],
+            "confidence": 0
+        }
 
 @app.get("/test-celery")
 def run_test_celery():
