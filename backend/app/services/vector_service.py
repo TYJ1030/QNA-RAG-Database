@@ -55,9 +55,10 @@ class VectorService:
             pass  # Redis unavailable, skip caching
 
     async def _warm_embedding_model(self):
-        # Skip warmup for faster startup on Render
+        # Skip warmup completely for Render
         self._embedding_model_warmed = True
         logging.info("Skipping embedding warmup for faster startup")
+        return  # Exit early
 
     def _calculate_optimal_batch_size(self, chunk_count: int) -> int:
         """Calculate optimal batch size based on chunk count"""

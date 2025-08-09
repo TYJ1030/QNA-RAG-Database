@@ -65,6 +65,15 @@ def health_check():
 
 @app.post("/query")
 async def query_documents(request: dict):
+    # Temporarily disabled for deployment
+    return {
+        "answer": "Query functionality temporarily disabled during deployment. Please upload documents first.",
+        "sources": [],
+        "confidence": 0
+    }
+    
+# Original query function (disabled)
+async def _query_documents_disabled(request: dict):
     from app.services.rag_service import RAGService
     from app.services.vector_service import VectorService
     
