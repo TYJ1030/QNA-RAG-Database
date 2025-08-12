@@ -1,8 +1,5 @@
 ---
 title: QNA RAG Database
-emoji: 🤖
-colorFrom: blue
-colorTo: purple
 sdk: docker
 pinned: false
 license: mit
@@ -27,7 +24,3 @@ A production-ready Question-Answering system using Retrieval-Augmented Generatio
 2. Wait for processing to complete
 3. Ask questions about your documents
 4. Get intelligent responses with source citations
-
-## Demo
-
-This is a live demo of the QNA-RAG-Database system running on Hugging Face Spaces.
