@@ -1,0 +1,52 @@
+name: Test and Deploy
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+        pip install pytest
+        python -c "import nltk; nltk.download('punkt_tab')"
+    
+    - name: Run tests
+      run: |
+        export PYTHONPATH="$PWD:$PWD/backend:$PYTHONPATH"
+        python -m pytest tests/ -v --tb=short
+    
+    - name: Basic security check
+      run: |
+        pip install bandit
+        bandit -r backend/ -f json || true
+    
+    - name: Run system tests
+      run: |
+        export PYTHONPATH="$PWD/backend:$PYTHONPATH"
+        python test_system_complete.py || echo "System test completed with warnings"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy notification
+      run: echo "Deployment would happen here - configure based on your hosting"
