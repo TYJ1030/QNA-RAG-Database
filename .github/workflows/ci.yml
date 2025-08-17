@@ -36,7 +36,7 @@ jobs:
     - name: Run tests
       run: |
         export PYTHONPATH=.
-        pytest -v tests/test_vector_pipeline.py --maxfail=1 --disable-warnings
+        pytest -v tests/ --maxfail=1 --disable-warnings
 
     - name: Upload test log
       if: always()
