@@ -15,30 +15,25 @@ export default function RAGSystem() {
   const [citations, setCitations] = useState<Citation[]>([]);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
 
-  // Load existing documents from backend on page load
+  // Clear backend documents and sync with frontend on page load
   useEffect(() => {
-    const loadExistingDocuments = async () => {
+    const syncDocuments = async () => {
       try {
-        const res = await fetch(`/api/documents/`);
-        if (res.ok) {
-          const backendDocs = await res.json();
-          const formattedDocs = backendDocs.map((doc: any) => ({
-            id: doc.id,
-            name: doc.filename,
-            size: doc.size,
-            status: 'completed' as const,
-            uploadedAt: new Date(doc.created_at)
-          }));
-          setDocuments(formattedDocs);
-        }
+        // Clear backend documents to sync with empty frontend state
+        await fetch('/api/sync/clear-documents', {
+          method: 'POST'
+        });
+        
+        // Frontend starts with empty documents array
+        setDocuments([]);
       } catch (error) {
-        console.error('Failed to load existing documents:', error);
+        console.error('Failed to sync documents:', error);
       } finally {
         setIsLoadingDocuments(false);
       }
     };
 
-    loadExistingDocuments();
+    syncDocuments();
   }, []);
 
   return (

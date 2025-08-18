@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     curl \
-    libgl1-mesa-glx \
+    libgl1-mesa-dev \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -44,11 +44,7 @@ RUN npm install --legacy-peer-deps
 RUN npm run build
 
 # Create startup script
-RUN echo '#!/bin/bash\n\
-export PYTHONPATH=/app/backend:$PYTHONPATH\n\
-cd /app/backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &\n\
-cd /app && npm start -- --port 7860 --hostname 0.0.0.0\n\
-' > start.sh && chmod +x start.sh
+RUN echo '#!/bin/bash\nset -e\nexport PYTHONPATH=/app/backend:$PYTHONPATH\necho "Starting backend..."\ncd /app/backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &\nBACKEND_PID=$!\necho "Backend started with PID $BACKEND_PID"\nsleep 5\necho "Starting frontend..."\ncd /app && npm start -- --port 7860 --hostname 0.0.0.0\n' > start.sh && chmod +x start.sh
 
 # Expose port for Hugging Face Spaces
 EXPOSE 7860

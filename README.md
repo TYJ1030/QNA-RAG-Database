@@ -1,3 +1,11 @@
+---
+title: QNA RAG Database
+sdk: docker
+app_port: 3000
+pinned: false
+license: mit
+---
+
 # QNA-RAG-Database System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

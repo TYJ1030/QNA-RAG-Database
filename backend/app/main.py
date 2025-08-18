@@ -41,6 +41,33 @@ app.include_router(documents.router)
 def health_check():
     return {"status": "healthy", "message": "API is running"}
 
+@app.post("/sync/clear-documents")
+def clear_documents_on_frontend_restart():
+    """Clear all backend documents when frontend restarts/refreshes"""
+    import redis
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    r = redis.Redis.from_url(
+        "rediss://default:AYLCAAIjcDFkNGZhYmNkMWI1NjM0MWZmYjdjM2I4ZWE0ODQ4NWI4ZHAxMA@enormous-lab-33474.upstash.io:6379?ssl_cert_reqs=required",
+        decode_responses=True
+    )
+    
+    # Get all document IDs
+    doc_ids = list(r.smembers('doc_ids'))
+    
+    # Remove all document-related data
+    for doc_id in doc_ids:
+        r.delete(f"doc_meta:{doc_id}")
+        r.delete(f"doc_progress:{doc_id}")
+        r.delete(f"doc_chunks:{doc_id}")
+    
+    # Clear the document IDs set
+    r.delete('doc_ids')
+    
+    logger.info(f"Frontend sync: cleared {len(doc_ids)} documents from backend")
+    return {"message": "Backend documents cleared", "cleared_count": len(doc_ids)}
+
 @app.get("/admin/debug")
 def debug_redis_state():
     """Show what documents are currently in Redis"""
@@ -98,6 +125,9 @@ def reset_all_documents():
     logger.info(f"Reset complete: removed {len(doc_ids)} documents")
     return {"message": f"Reset complete: removed {len(doc_ids)} documents", "remaining_docs": 0}
 
+from fastapi import HTTPException
+import asyncio
+
 @app.post("/rag/query")
 async def rag_query(request: dict):
     import redis
@@ -151,17 +181,25 @@ async def rag_query(request: dict):
         if not current_docs:
             return {"answer": "No documents found. Please upload documents first.", "sources": []}
         
-        # Collect chunks from all current documents
+        # Collect chunks from all current documents (with limits)
         all_chunks = []
         chunk_sources = []
+        MAX_CHUNKS_PER_DOC = 100  # Limit chunks per document
+        MAX_TOTAL_CHUNKS = 500    # Limit total chunks
         
         for doc_id in current_docs:
-            chunks_raw = r.lrange(f"doc_chunks:{doc_id}", 0, -1)
+            if len(all_chunks) >= MAX_TOTAL_CHUNKS:
+                logger.info(f"Reached maximum total chunks limit ({MAX_TOTAL_CHUNKS})")
+                break
+                
+            chunks_raw = r.lrange(f"doc_chunks:{doc_id}", 0, MAX_CHUNKS_PER_DOC-1)  # Limit per doc
             doc_meta = r.hgetall(f"doc_meta:{doc_id}")
             doc_filename = doc_meta.get('filename', 'Unknown') if doc_meta else 'Unknown'
-            logger.info(f"Processing document: {doc_filename} (ID: {doc_id}) with {len(chunks_raw)} chunks")
+            logger.info(f"Processing document: {doc_filename} (ID: {doc_id}) with {len(chunks_raw)} chunks (limited)")
             
             for chunk_str in chunks_raw:
+                if len(all_chunks) >= MAX_TOTAL_CHUNKS:
+                    break
                 try:
                     chunk = ast.literal_eval(chunk_str)
                     text = chunk.get('text', '')
@@ -177,21 +215,40 @@ async def rag_query(request: dict):
         if not all_chunks:
             return {"answer": "No relevant documents found. Please upload documents first.", "sources": []}
         
-        # Use semantic similarity for fair ranking
-        from sentence_transformers import SentenceTransformer
+        # Use semantic similarity for fair ranking (with timeout)
+        async def process_with_timeout():
+            from sentence_transformers import SentenceTransformer
+            
+            model = SentenceTransformer('all-MiniLM-L6-v2')
+            query_embedding = model.encode([query])[0]
+            
+            # Calculate semantic similarity for each chunk (batch processing)
+            chunk_scores = []
+            batch_size = 50  # Process in batches
+            
+            for i in range(0, len(all_chunks), batch_size):
+                batch_chunks = all_chunks[i:i+batch_size]
+                batch_embeddings = model.encode(batch_chunks)
+                
+                for j, chunk_embedding in enumerate(batch_embeddings):
+                    chunk_idx = i + j
+                    if chunk_idx < len(all_chunks) and all_chunks[chunk_idx].strip():
+                        similarity = np.dot(query_embedding, chunk_embedding) / (
+                            np.linalg.norm(query_embedding) * np.linalg.norm(chunk_embedding)
+                        )
+                        chunk_scores.append((all_chunks[chunk_idx], similarity, chunk_sources[chunk_idx]))
+            
+            return chunk_scores
         
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        query_embedding = model.encode([query])[0]
-        
-        # Calculate semantic similarity for each chunk
-        chunk_scores = []
-        for i, chunk in enumerate(all_chunks):
-            if chunk.strip():
-                chunk_embedding = model.encode([chunk])[0]
-                similarity = np.dot(query_embedding, chunk_embedding) / (
-                    np.linalg.norm(query_embedding) * np.linalg.norm(chunk_embedding)
-                )
-                chunk_scores.append((chunk, similarity, chunk_sources[i]))
+        try:
+            # Set 30 second timeout for embedding processing
+            chunk_scores = await asyncio.wait_for(process_with_timeout(), timeout=30.0)
+        except asyncio.TimeoutError:
+            logger.error("Embedding processing timed out after 30 seconds")
+            raise HTTPException(status_code=408, detail="Query processing timed out. Please try with fewer documents.")
+        except Exception as e:
+            logger.error(f"Error in embedding processing: {str(e)}")
+            raise HTTPException(status_code=500, detail="Error processing query")
         
         # Sort by semantic similarity (highest first)
         chunk_scores.sort(key=lambda x: x[1], reverse=True)
