@@ -7,6 +7,7 @@ import asyncio
 import sys
 import os
 import time
+import pytest
 
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
@@ -16,6 +17,7 @@ def log_step(step, message, status="INFO"):
     timestamp = time.strftime("%H:%M:%S")
     print(f"[{timestamp}] [{status}] {step}: {message}")
 
+@pytest.mark.asyncio
 async def test_complete_system():
     """Test complete end-to-end system functionality"""
     log_step("INIT", "Starting Complete System Test", "START")

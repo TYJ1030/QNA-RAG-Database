@@ -8,6 +8,7 @@ import sys
 import os
 import time
 import tempfile
+import pytest
 
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
@@ -17,6 +18,7 @@ def log_test(test_name, message, status="INFO"):
     timestamp = time.strftime("%H:%M:%S")
     print(f"[{timestamp}] [{status}] {test_name}: {message}")
 
+@pytest.mark.asyncio
 async def test_empty_and_invalid_inputs():
     """Test system behavior with empty and invalid inputs"""
     test_name = "EMPTY_INVALID"
@@ -85,6 +87,7 @@ async def test_empty_and_invalid_inputs():
         log_test(test_name, f"Traceback: {traceback.format_exc()}")
         return False
 
+@pytest.mark.asyncio
 async def test_large_document_processing():
     """Test system with very large documents"""
     test_name = "LARGE_DOCS"
@@ -139,6 +142,7 @@ async def test_large_document_processing():
         log_test(test_name, f"Traceback: {traceback.format_exc()}")
         return False
 
+@pytest.mark.asyncio
 async def test_special_characters_encoding():
     """Test system with special characters and different encodings"""
     test_name = "SPECIAL_CHARS"
@@ -186,6 +190,7 @@ async def test_special_characters_encoding():
         log_test(test_name, f"Traceback: {traceback.format_exc()}")
         return False
 
+@pytest.mark.asyncio
 async def test_concurrent_processing():
     """Test system under concurrent load"""
     test_name = "CONCURRENT"
@@ -261,6 +266,7 @@ async def test_concurrent_processing():
         log_test(test_name, f"Traceback: {traceback.format_exc()}")
         return False
 
+@pytest.mark.asyncio
 async def test_memory_stress():
     """Test system memory usage under stress"""
     test_name = "MEMORY_STRESS"
@@ -332,6 +338,7 @@ async def test_memory_stress():
         log_test(test_name, f"Traceback: {traceback.format_exc()}")
         return False
 
+@pytest.mark.asyncio
 async def test_error_recovery():
     """Test system error recovery and graceful degradation"""
     test_name = "ERROR_RECOVERY"
@@ -412,6 +419,7 @@ async def test_error_recovery():
         log_test(test_name, f"Traceback: {traceback.format_exc()}")
         return False
 
+@pytest.mark.asyncio
 async def test_data_consistency():
     """Test data consistency and deduplication"""
     test_name = "DATA_CONSISTENCY"
